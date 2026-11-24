@@ -1,0 +1,54 @@
+name: Airport 3 daily discovery, Mihomo validation, and publish
+on:
+  schedule:
+    - cron: '30 0 * * *' # 08:30 Asia/Shanghai
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: airport3-daily
+  cancel-in-progress: false
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/configure-pages@v5
+      - name: Install generator dependencies
+        run: python -m pip install --disable-pip-version-check pyyaml qrcode[pil]
+      - name: Download Mihomo
+        id: mihomo
+        shell: bash
+        run: |
+          URL="$(python - <<'PY'
+          import json,urllib.request
+          req=urllib.request.Request('https://api.github.com/repos/MetaCubeX/mihomo/releases/latest',headers={'User-Agent':'airport3'})
+          data=json.load(urllib.request.urlopen(req))
+          assets=[a for a in data['assets'] if 'linux-amd64' in a['name'].lower() and a['name'].endswith('.gz') and 'compatible' not in a['name'].lower()]
+          if not assets: raise SystemExit('No linux-amd64 Mihomo .gz release asset found')
+          print(assets[0]['browser_download_url'])
+          PY
+          )"
+          curl --fail --location --retry 3 "$URL" -o /tmp/mihomo.gz
+          mkdir -p /tmp/mihomo
+          gzip -dc /tmp/mihomo.gz > /tmp/mihomo/mihomo
+          chmod +x /tmp/mihomo/mihomo
+          echo "path=/tmp/mihomo/mihomo" >> "$GITHUB_OUTPUT"
+      - name: Discover, Mihomo-test and generate today's YAML and QR
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MIHOMO_BIN: ${{ steps.mihomo.outputs.path }}
+        run: |
+          DAY="$(TZ=Asia/Shanghai date +%F)"
+          python scripts/daily_airport3.py "$DAY"
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: site}
+      - id: deployment
+        uses: actions/deploy-pages@v4

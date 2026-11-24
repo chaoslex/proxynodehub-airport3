@@ -306,3 +306,7 @@ tests/Dockerfile            # 核心回归与 Windows 交叉构建；不是服�
 ## 许可协议
 
 基于 [MIT License](LICENSE) 发布。
+
+## Airport 3 daily subscription
+
+The separate `chaoslex/proxynodehub-airport3` deployment runs ProxyNodeHub-based public feed discovery daily at 08:30 Asia/Shanghai. Its workflow converts discovered Clash-compatible feeds to candidates, probes every candidate through Mihomo against `https://www.gstatic.com/generate_204` (5-second timeout), drops failures and publishes up to the 50 fastest passing nodes as `alexfree-YYYY-MM-DD-机场3.yaml`, with a matching QR. Measurements run on GitHub-hosted infrastructure and do not guarantee reachability from a phone or local network. The public Pages output is a dated snapshot.
