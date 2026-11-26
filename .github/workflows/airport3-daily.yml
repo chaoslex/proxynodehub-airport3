@@ -1,5 +1,7 @@
 name: Airport 3 daily discovery, Mihomo validation, and publish
 on:
+  schedule:
+    - cron: '30 0 * * *' # 08:30 Asia/Shanghai
   workflow_dispatch:
 permissions:
   contents: read
